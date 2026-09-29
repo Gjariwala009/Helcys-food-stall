@@ -34,8 +34,9 @@ function formatElapsed(dateString) {
 export default function LiveOrdersView({ onSwitchToNewOrder }) {
   const { orders, updateStatus } = useOrders();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStage, setFilterStage] = useState('all'); // 'all' | 'preparing' | 'ready'
+  const [filterStage, setFilterStage] = useState('preparing'); // 'preparing' (default: only orders to cook) | 'ready' | 'all'
   const [checkedItems, setCheckedItems] = useState({}); // { `${orderId}-${itemIdx}`: boolean }
+  const [lastReadyOrder, setLastReadyOrder] = useState(null);
   const [lastCompletedOrder, setLastCompletedOrder] = useState(null);
   const [timerTick, setTimerTick] = useState(0);
 
@@ -76,10 +77,16 @@ export default function LiveOrdersView({ onSwitchToNewOrder }) {
     }));
   };
 
-  // Mark as Ready
+  // Mark as Ready: Clears from cooking view and alerts front desk
   const handleMarkReady = (order) => {
-    soundEffects.playBell();
+    soundEffects.playSuccess();
     updateStatus(order.id, ORDER_STATUS.READY);
+    setLastReadyOrder(order);
+
+    // Auto-dismiss toast after 7s
+    setTimeout(() => {
+      setLastReadyOrder((prev) => (prev?.id === order.id ? null : prev));
+    }, 7000);
   };
 
   // Mark as Completed (Disappears from screen)
@@ -94,8 +101,16 @@ export default function LiveOrdersView({ onSwitchToNewOrder }) {
     }, 8000);
   };
 
+  // Undo accidental ready mark
+  const handleUndoReady = () => {
+    if (lastReadyOrder) {
+      updateStatus(lastReadyOrder.id, ORDER_STATUS.PREPARING);
+      setLastReadyOrder(null);
+    }
+  };
+
   // Undo accidental complete
-  const handleUndo = () => {
+  const handleUndoCompleted = () => {
     if (lastCompletedOrder) {
       updateStatus(lastCompletedOrder.id, ORDER_STATUS.PREPARING);
       setLastCompletedOrder(null);
@@ -119,7 +134,27 @@ export default function LiveOrdersView({ onSwitchToNewOrder }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      {/* Undo Toast */}
+      {/* Ready Notification Toast */}
+      {lastReadyOrder && (
+        <div className="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between gap-4 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-2.5 text-xs sm:text-sm">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <span>
+              Order <strong>#{lastReadyOrder.tokenNumber}</strong> for{' '}
+              <strong>{lastReadyOrder.customerName}</strong> marked Ready & sent to Front Desk!
+            </span>
+          </div>
+          <button
+            onClick={handleUndoReady}
+            className="flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs font-bold transition-colors shrink-0"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Undo</span>
+          </button>
+        </div>
+      )}
+
+      {/* Undo Completed Toast */}
       {lastCompletedOrder && (
         <div className="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between gap-4 animate-in slide-in-from-top duration-300">
           <div className="flex items-center gap-2.5 text-sm">
@@ -130,7 +165,7 @@ export default function LiveOrdersView({ onSwitchToNewOrder }) {
             </span>
           </div>
           <button
-            onClick={handleUndo}
+            onClick={handleUndoCompleted}
             className="flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs font-bold transition-colors"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -152,13 +187,39 @@ export default function LiveOrdersView({ onSwitchToNewOrder }) {
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1">
-            Orders being prepared. When an order is handed to the customer, click "Completed" to clear it.
+            Kitchen queue. Cook items, then tap "Food Ready" to clear it and advance to the next order in line.
           </p>
         </div>
 
         {/* Filter Pills & Search */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
+            <button
+              onClick={() => setFilterStage('preparing')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                filterStage === 'preparing'
+                  ? 'bg-white text-amber-600 shadow-sm'
+                  : 'hover:text-slate-900'
+              }`}
+            >
+              <span>🍳 To Cook</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${filterStage === 'preparing' ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700'}`}>
+                {preparingCount}
+              </span>
+            </button>
+            <button
+              onClick={() => setFilterStage('ready')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                filterStage === 'ready'
+                  ? 'bg-white text-emerald-600 shadow-sm'
+                  : 'hover:text-slate-900'
+              }`}
+            >
+              <span>🔔 Ready at Front</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${filterStage === 'ready' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}`}>
+                {readyCount}
+              </span>
+            </button>
             <button
               onClick={() => setFilterStage('all')}
               className={`px-3 py-1.5 rounded-lg transition-all ${
@@ -168,26 +229,6 @@ export default function LiveOrdersView({ onSwitchToNewOrder }) {
               }`}
             >
               All ({preparingCount + readyCount})
-            </button>
-            <button
-              onClick={() => setFilterStage('preparing')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${
-                filterStage === 'preparing'
-                  ? 'bg-white text-amber-600 shadow-sm'
-                  : 'hover:text-slate-900'
-              }`}
-            >
-              Preparing ({preparingCount})
-            </button>
-            <button
-              onClick={() => setFilterStage('ready')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${
-                filterStage === 'ready'
-                  ? 'bg-white text-emerald-600 shadow-sm'
-                  : 'hover:text-slate-900'
-              }`}
-            >
-              Ready ({readyCount})
             </button>
           </div>
 
@@ -208,15 +249,28 @@ export default function LiveOrdersView({ onSwitchToNewOrder }) {
       {activeOrders.length === 0 ? (
         <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-12 text-center max-w-lg mx-auto space-y-4">
           <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto text-3xl">
-            ✨
+            🍳
           </div>
           <div>
             <h3 className="text-lg font-extrabold text-slate-900">
-              Kitchen is all caught up!
+              {filterStage === 'preparing'
+                ? 'Cooking queue is all clear!'
+                : filterStage === 'ready'
+                ? 'No orders waiting at front desk'
+                : 'Kitchen is all caught up!'}
             </h3>
             <p className="text-sm text-slate-500 mt-1">
-              There are no pending orders in the queue right now. Great job!
+              {filterStage === 'preparing'
+                ? 'All pending orders have been cooked and sent to the front desk. Great job!'
+                : 'There are no active orders matching this filter right now.'}
             </p>
+            {filterStage === 'preparing' && readyCount > 0 && (
+              <div className="mt-3">
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 py-1.5 px-3 rounded-xl inline-block">
+                  🔔 {readyCount} order{readyCount > 1 ? 's are' : ' is'} waiting for customer pickup at the front counter.
+                </span>
+              </div>
+            )}
           </div>
           <button
             onClick={onSwitchToNewOrder}
@@ -373,22 +427,34 @@ export default function LiveOrdersView({ onSwitchToNewOrder }) {
                     <button
                       type="button"
                       onClick={() => handleMarkReady(order)}
-                      className="flex-1 py-2.5 px-3 rounded-xl border border-amber-300 bg-white hover:bg-amber-50 text-amber-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                      className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-200 transition-all"
+                      title="Food is ready - clears from kitchen screen and alerts front desk"
                     >
-                      <Bell className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Mark Ready</span>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-100" />
+                      <span>Food Ready ➔ Send to Front Desk 🔔</span>
                     </button>
-                  ) : null}
-
-                  <button
-                    type="button"
-                    onClick={() => handleMarkCompleted(order)}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-200 active:scale-95"
-                    title="Handed to customer - removes order from screen"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Complete & Hand Over</span>
-                  </button>
+                  ) : (
+                    <div className="flex items-center gap-2 w-full">
+                      <button
+                        type="button"
+                        onClick={() => updateStatus(order.id, ORDER_STATUS.PREPARING)}
+                        className="py-2.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                        title="Move back to cooking queue"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Back to Cook</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMarkCompleted(order)}
+                        className="flex-1 py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                        title="Handed to customer"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Complete & Hand Over</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );

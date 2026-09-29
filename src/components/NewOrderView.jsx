@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import {
   Plus,
@@ -13,9 +13,13 @@ import {
   Sparkles,
   ShoppingBag,
   RotateCcw,
-  Check
+  Check,
+  Bell,
+  Send,
+  Clock,
+  ChefHat
 } from 'lucide-react';
-import { MENU_ITEMS, PAYMENT_METHODS } from '../constants/menu';
+import { MENU_ITEMS, PAYMENT_METHODS, ORDER_STATUS } from '../constants/menu';
 import { useOrders } from '../context/OrdersContext';
 import { soundEffects } from '../utils/audio';
 
@@ -29,7 +33,7 @@ const QUICK_NOTES = [
 ];
 
 export default function NewOrderView({ onOrderPlacedSuccess }) {
-  const { createOrder } = useOrders();
+  const { orders, createOrder, updateStatus } = useOrders();
 
   // State for quantities of each item
   const [quantities, setQuantities] = useState({
@@ -96,6 +100,42 @@ export default function NewOrderView({ onOrderPlacedSuccess }) {
       if (prev.includes(note)) return prev;
       return `${prev}, ${note}`;
     });
+  };
+
+  // Live orders tracking for front desk
+  const readyOrders = useMemo(() => {
+    return orders.filter((o) => o.status === ORDER_STATUS.READY);
+  }, [orders]);
+
+  const preparingOrders = useMemo(() => {
+    return orders.filter((o) => o.status === ORDER_STATUS.PREPARING);
+  }, [orders]);
+
+  // Audio chime alert when a new order becomes ready in the kitchen
+  const prevReadyCountRef = useRef(readyOrders.length);
+  useEffect(() => {
+    if (readyOrders.length > prevReadyCountRef.current) {
+      soundEffects.playBell();
+    }
+    prevReadyCountRef.current = readyOrders.length;
+  }, [readyOrders.length]);
+
+  // 1-Click Complete & Hand Over from front desk
+  const handleCompleteOrder = (order) => {
+    soundEffects.playSuccess();
+    updateStatus(order.id, ORDER_STATUS.COMPLETED);
+  };
+
+  // WhatsApp Ping helper
+  const getWhatsAppLink = (order) => {
+    if (!order.contact) return '#';
+    const cleanPhone = order.contact.replace(/\D/g, '');
+    const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    const itemsList = order.items.map((i) => `${i.quantity}x ${i.name}`).join(', ');
+    const msg = encodeURIComponent(
+      `Hi ${order.customerName}! 🧋🥟 Your order #${order.tokenNumber} (${itemsList}) is READY for pickup at Helcy's stall!`
+    );
+    return `https://wa.me/${phoneWithCountry}?text=${msg}`;
   };
 
   // Handle Order Submit
@@ -191,6 +231,136 @@ export default function NewOrderView({ onOrderPlacedSuccess }) {
           </div>
         </div>
       )}
+
+      {/* Ready for Pickup Live Alert Bar (Visible to Front Desk) */}
+      {readyOrders.length > 0 ? (
+        <div className="mb-6 rounded-3xl border-2 border-emerald-400 bg-gradient-to-r from-emerald-50 via-teal-50/60 to-emerald-50 p-5 shadow-lg shadow-emerald-500/10 animate-in slide-in-from-top-4 duration-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-emerald-200/80">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-200 animate-bounce shrink-0">
+                <Bell className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-black text-emerald-950 tracking-tight">
+                    🔔 Ready for Pickup ({readyOrders.length})
+                  </h2>
+                  <span className="text-[10px] uppercase font-black bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full animate-pulse">
+                    Kitchen Ready
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-700 font-medium">
+                  Prepared in kitchen. Hand over to customer and click "Complete & Hand Over".
+                </p>
+              </div>
+            </div>
+
+            {preparingOrders.length > 0 && (
+              <div className="text-xs font-bold text-slate-600 bg-white/90 border border-emerald-200 px-3 py-1.5 rounded-xl self-start sm:self-auto flex items-center gap-2 shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                <span>{preparingOrders.length} order{preparingOrders.length > 1 ? 's' : ''} in kitchen prep</span>
+              </div>
+            )}
+          </div>
+
+          {/* Ready Orders Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-4">
+            {readyOrders.map((order) => (
+              <div
+                key={order.id}
+                className="bg-white rounded-2xl border-2 border-emerald-400/80 p-4 shadow-sm flex flex-col justify-between hover:shadow-md transition-all relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 bg-emerald-500 text-white font-black text-[10px] uppercase px-2.5 py-0.5 rounded-bl-xl shadow-sm tracking-wider">
+                  Pickup Ready
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2.5 mb-2.5">
+                    <span className="text-base font-black text-emerald-950 bg-emerald-100/80 border border-emerald-300 px-2.5 py-1 rounded-xl">
+                      #{order.tokenNumber}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-extrabold text-slate-900 text-sm truncate">
+                        {order.customerName}
+                      </div>
+                      {order.contact ? (
+                        <div className="text-[11px] text-slate-500 flex items-center gap-1">
+                          <Phone className="w-3 h-3 text-slate-400" />
+                          <span>{order.contact}</span>
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-slate-400">Walk-in</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Items list */}
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs mb-3">
+                    <div className="font-semibold text-slate-700 flex flex-wrap gap-1.5">
+                      {order.items.map((item, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-slate-200 text-[11px]"
+                        >
+                          <strong className="text-emerald-700">{item.quantity}x</strong>
+                          <span>{item.name}</span>
+                        </span>
+                      ))}
+                    </div>
+                    {order.remarks && (
+                      <div className="text-[10px] text-amber-800 font-medium pt-1.5 flex items-center gap-1">
+                        <span className="font-bold">Note:</span>
+                        <span>{order.remarks}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Handover & WhatsApp Buttons */}
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                  {order.contact && (
+                    <a
+                      href={getWhatsAppLink(order)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors flex items-center justify-center shrink-0"
+                      title="Ping Customer on WhatsApp: Order is ready"
+                    >
+                      <Send className="w-4 h-4" />
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleCompleteOrder(order)}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-200 transition-all"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Complete & Hand Over</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : preparingOrders.length > 0 ? (
+        /* Subtle kitchen status bar when no orders are ready yet but kitchen is actively cooking */
+        <div className="mb-6 p-3 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex items-center justify-between text-xs text-amber-900">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <ChefHat className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold">Kitchen Queue Active: </span>
+              <span>
+                {preparingOrders.length} order{preparingOrders.length > 1 ? 's' : ''} currently being prepared in the back.
+              </span>
+            </div>
+          </div>
+          <span className="text-[11px] text-amber-700 font-medium hidden sm:inline">
+            When kitchen taps "Mark Ready", order will pop up here with a chime 🔔
+          </span>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Menu Selection (8 cols on lg) */}

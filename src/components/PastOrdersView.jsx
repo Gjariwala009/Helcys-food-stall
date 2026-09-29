@@ -7,7 +7,6 @@ import {
   Filter,
   Receipt,
   RotateCcw,
-  Trash2,
   Banknote,
   Smartphone,
   Calendar,
@@ -22,7 +21,7 @@ import { MENU_ITEMS, ORDER_STATUS } from '../constants/menu';
 import { exportOrdersToCSV } from '../services/storage';
 
 export default function PastOrdersView({ onOpenReceipt }) {
-  const { orders, updateStatus, removeOrder } = useOrders();
+  const { orders, updateStatus } = useOrders();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPayment, setSelectedPayment] = useState('all'); // 'all' | 'Cash' | 'Online'
@@ -454,19 +453,6 @@ export default function PastOrdersView({ onOpenReceipt }) {
                               <RotateCcw className="w-3.5 h-3.5" />
                             </button>
                           )}
-
-                          {/* Delete order */}
-                          <button
-                            onClick={() => {
-                              if (confirm(`Delete order #${order.tokenNumber} permanently?`)) {
-                                removeOrder(order.id);
-                              }
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete record"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
                         </div>
                       </td>
                     </tr>

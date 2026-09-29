@@ -8,12 +8,13 @@ import {
   Cloud,
   CloudOff,
   Sparkles,
-  Layers
+  Layers,
+  AlertTriangle
 } from 'lucide-react';
 import { useOrders } from '../context/OrdersContext';
 
 export default function Navbar({ activeTab, setActiveTab, onOpenSettings }) {
-  const { orders, syncStatus } = useOrders();
+  const { orders, syncStatus, firebaseError } = useOrders();
 
   const activeOrdersCount = orders.filter(
     (o) => o.status === 'preparing' || o.status === 'ready'
@@ -105,6 +106,8 @@ export default function Navbar({ activeTab, setActiveTab, onOpenSettings }) {
                   ? 'Firebase Cloud Sync Connected'
                   : syncStatus === 'connecting'
                   ? 'Connecting to Cloud...'
+                  : syncStatus === 'error'
+                  ? `Firestore Error: ${firebaseError || 'Permission denied'}. Click to fix.`
                   : 'Local Storage Mode (Click to setup Cloud Sync)'
               }
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
@@ -112,6 +115,8 @@ export default function Navbar({ activeTab, setActiveTab, onOpenSettings }) {
                   ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                   : syncStatus === 'connecting'
                   ? 'bg-amber-50 border-amber-200 text-amber-700 animate-pulse'
+                  : syncStatus === 'error'
+                  ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'
                   : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -119,6 +124,16 @@ export default function Navbar({ activeTab, setActiveTab, onOpenSettings }) {
                 <>
                   <Cloud className="w-3.5 h-3.5 text-emerald-500" />
                   <span className="hidden sm:inline">Cloud Synced</span>
+                </>
+              ) : syncStatus === 'connecting' ? (
+                <>
+                  <Cloud className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                  <span className="hidden sm:inline">Connecting...</span>
+                </>
+              ) : syncStatus === 'error' ? (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+                  <span className="hidden sm:inline">Firebase Rule Error</span>
                 </>
               ) : (
                 <>

@@ -133,12 +133,54 @@ export default function SettingsModal({ onClose }) {
                     ? 'bg-emerald-100 text-emerald-800'
                     : syncStatus === 'connecting'
                     ? 'bg-amber-100 text-amber-800'
+                    : syncStatus === 'error'
+                    ? 'bg-rose-100 text-rose-800'
                     : 'bg-slate-100 text-slate-600'
                 }`}
               >
-                {syncStatus === 'synced' ? 'Active & Synced' : 'Local Storage Mode'}
+                {syncStatus === 'synced'
+                  ? 'Active & Synced'
+                  : syncStatus === 'error'
+                  ? 'Permission Error'
+                  : syncStatus === 'connecting'
+                  ? 'Connecting...'
+                  : 'Local Storage Mode'}
               </span>
             </div>
+
+            {firebaseError && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-rose-800">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>Firestore Security Rules Error</span>
+                </div>
+                <p className="text-[11px] text-rose-700 leading-relaxed">
+                  Your web app connected to Firebase, but Cloud Firestore rejected access with:
+                  <br />
+                  <code className="bg-rose-100 font-mono px-1.5 py-0.5 rounded text-[10px] text-rose-800 inline-block mt-0.5">
+                    {firebaseError}
+                  </code>
+                </p>
+                <div className="bg-white p-3 rounded-xl border border-rose-200/80 text-[11px] space-y-1">
+                  <p className="font-bold text-slate-900">How to fix in 10 seconds in Firebase Console:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-slate-600">
+                    <li>Open your Firebase tab ➔ <strong>Firestore Database</strong> ➔ <strong>Rules</strong> tab.</li>
+                    <li>Change the rule to allow read/write:</li>
+                  </ol>
+                  <pre className="text-[10px] bg-slate-900 text-emerald-300 p-2 rounded-lg font-mono overflow-x-auto mt-1">
+{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}`}
+                  </pre>
+                  <p className="text-[10px] text-slate-500">3. Click the blue <strong>Publish</strong> button at the top.</p>
+                </div>
+              </div>
+            )}
 
             <p className="text-xs text-slate-500 leading-relaxed">
               By default, all orders save automatically in your browser's persistent LocalStorage (100% offline, zero setup needed).
