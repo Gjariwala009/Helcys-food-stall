@@ -10,69 +10,24 @@ import {
   orderBy
 } from './firebase';
 
-const LOCAL_STORAGE_ORDERS_KEY = 'helcy_orders_store_v1';
-const LOCAL_STORAGE_TOKEN_KEY = 'helcy_daily_token_counter_v1';
-
-// Initial sample orders so the user can immediately see what the kitchen & history looks like
-const INITIAL_DEMO_ORDERS = [
-  {
-    id: 'demo-101',
-    tokenNumber: 101,
-    customerName: 'Aarav Sharma',
-    contact: '9876543210',
-    items: [
-      { id: 'strawberry-boba', name: 'Strawberry Boba', quantity: 2, price: 150 },
-      { id: 'steamed-momos', name: 'Steamed Momos', quantity: 1, price: 120 },
-    ],
-    totalAmount: 420,
-    paymentMethod: 'Online',
-    remarks: 'Less sweet boba, extra spicy momo chutney',
-    status: 'preparing', // active on kitchen screen
-    createdAt: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
-    completedAt: null,
-  },
-  {
-    id: 'demo-102',
-    tokenNumber: 102,
-    customerName: 'Ananya Roy',
-    contact: '9812345678',
-    items: [
-      { id: 'green-apple-boba', name: 'Green Apple Boba', quantity: 1, price: 150 },
-      { id: 'blueberry-boba', name: 'Blueberry Boba', quantity: 1, price: 150 },
-    ],
-    totalAmount: 300,
-    paymentMethod: 'Cash',
-    remarks: 'Extra ice please',
-    status: 'ready', // ready for pickup
-    createdAt: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
-    completedAt: null,
-  },
-  {
-    id: 'demo-100',
-    tokenNumber: 100,
-    customerName: 'Vikram Mehta',
-    contact: '',
-    items: [
-      { id: 'orange-boba', name: 'Orange Boba', quantity: 1, price: 150 },
-      { id: 'steamed-momos', name: 'Steamed Momos', quantity: 2, price: 120 },
-    ],
-    totalAmount: 390,
-    paymentMethod: 'Online',
-    remarks: '',
-    status: 'completed',
-    createdAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
-    completedAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-  }
-];
+const LOCAL_STORAGE_ORDERS_KEY = 'helcy_orders_store_v2';
+const LOCAL_STORAGE_TOKEN_KEY = 'helcy_daily_token_counter_v2';
 
 export function getLocalOrders() {
   try {
+    // Clean up legacy v1 key if it had demo orders
+    if (localStorage.getItem('helcy_orders_store_v1')) {
+      localStorage.removeItem('helcy_orders_store_v1');
+      localStorage.removeItem('helcy_daily_token_counter_v1');
+    }
+
     const raw = localStorage.getItem(LOCAL_STORAGE_ORDERS_KEY);
     if (!raw) {
-      localStorage.setItem(LOCAL_STORAGE_ORDERS_KEY, JSON.stringify(INITIAL_DEMO_ORDERS));
-      return INITIAL_DEMO_ORDERS;
+      localStorage.setItem(LOCAL_STORAGE_ORDERS_KEY, JSON.stringify([]));
+      return [];
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(o => !o.id?.startsWith('demo-')) : [];
   } catch (err) {
     console.error('Failed to read local orders:', err);
     return [];
@@ -91,12 +46,12 @@ export function saveLocalOrders(orders) {
 export function getNextTokenNumber() {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-    const lastNum = raw ? parseInt(raw, 10) : 102;
+    const lastNum = raw ? parseInt(raw, 10) : 100;
     const nextNum = lastNum + 1;
     localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, nextNum.toString());
     return nextNum;
   } catch {
-    return Math.floor(100 + Math.random() * 900);
+    return 101;
   }
 }
 

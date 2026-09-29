@@ -7,6 +7,7 @@ import {
 } from '../services/storage';
 import {
   initFirebase,
+  resetFirebaseApp,
   getSavedFirebaseConfig,
   saveFirebaseConfig,
   collection,
@@ -19,7 +20,7 @@ import {
   orderBy
 } from '../services/firebase';
 
-const OrdersContext = createContext(null);
+export const OrdersContext = createContext(null);
 
 export function OrdersProvider({ children }) {
   const [orders, setOrders] = useState(() => getLocalOrders());
@@ -95,7 +96,13 @@ export function OrdersProvider({ children }) {
 
   // Create new order
   const createOrder = async (orderPayload) => {
-    const tokenNumber = getNextTokenNumber();
+    // Determine token: highest token in existing orders + 1, or local storage counter
+    const highestExistingToken = orders.reduce(
+      (max, o) => Math.max(max, Number(o.tokenNumber) || 0),
+      100
+    );
+    const tokenNumber = Math.max(highestExistingToken + 1, getNextTokenNumber());
+
     const newOrder = {
       ...orderPayload,
       tokenNumber,
@@ -172,8 +179,9 @@ export function OrdersProvider({ children }) {
   };
 
   // Reconfigure Firebase
-  const applyFirebaseConfig = (config) => {
+  const applyFirebaseConfig = async (config) => {
     if (!config) {
+      await resetFirebaseApp();
       saveFirebaseConfig(null);
       setIsFirebaseEnabled(false);
       setFirestoreDb(null);
@@ -181,6 +189,7 @@ export function OrdersProvider({ children }) {
       return { success: true };
     }
     try {
+      await resetFirebaseApp();
       const { isConfigured, db, error } = initFirebase(config);
       if (isConfigured && db) {
         saveFirebaseConfig(config);
@@ -199,7 +208,15 @@ export function OrdersProvider({ children }) {
     }
   };
 
-  const clearAllData = () => {
+  const clearAllData = async () => {
+    if (isFirebaseEnabled && firestoreDb) {
+      try {
+        const deletePromises = orders.map((o) => deleteDoc(doc(firestoreDb, 'orders', o.id)));
+        await Promise.all(deletePromises);
+      } catch (err) {
+        console.error('Failed to clear Firestore collection:', err);
+      }
+    }
     clearLocalStorageOrders();
     setOrders([]);
   };
@@ -223,8 +240,4 @@ export function OrdersProvider({ children }) {
   );
 }
 
-export function useOrders() {
-  const ctx = useContext(OrdersContext);
-  if (!ctx) throw new Error('useOrders must be used inside an OrdersProvider');
-  return ctx;
-}
+export { useOrders } from './useOrders';

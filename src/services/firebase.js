@@ -1,4 +1,4 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, deleteApp } from 'firebase/app';
 import {
   getFirestore,
   collection,
@@ -49,6 +49,19 @@ export function saveFirebaseConfig(config) {
 let firestoreInstance = null;
 let appInstance = null;
 
+export async function resetFirebaseApp() {
+  const currentApps = getApps();
+  for (const app of currentApps) {
+    try {
+      await deleteApp(app);
+    } catch (e) {
+      console.warn('Error deleting Firebase app:', e);
+    }
+  }
+  appInstance = null;
+  firestoreInstance = null;
+}
+
 export function initFirebase(customConfig = null) {
   const config = customConfig || getSavedFirebaseConfig();
   if (!config || !config.apiKey || !config.projectId) {
@@ -56,10 +69,11 @@ export function initFirebase(customConfig = null) {
   }
 
   try {
-    if (!getApps().length) {
+    const existingApps = getApps();
+    if (!existingApps.length) {
       appInstance = initializeApp(config);
     } else {
-      appInstance = getApp();
+      appInstance = existingApps[0];
     }
     firestoreInstance = getFirestore(appInstance);
     return { isConfigured: true, db: firestoreInstance };

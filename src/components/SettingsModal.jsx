@@ -36,10 +36,10 @@ export default function SettingsModal({ onClose }) {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showFirebaseGuide, setShowFirebaseGuide] = useState(false);
 
-  const handleSaveFirebase = (e) => {
+  const handleSaveFirebase = async (e) => {
     e.preventDefault();
     if (!jsonConfig.trim()) {
-      applyFirebaseConfig(null);
+      await applyFirebaseConfig(null);
       setSaveMessage({ type: 'info', text: 'Switched to Local Offline Storage.' });
       return;
     }
@@ -53,7 +53,7 @@ export default function SettingsModal({ onClose }) {
         });
         return;
       }
-      const res = applyFirebaseConfig(parsed);
+      const res = await applyFirebaseConfig(parsed);
       if (res.success) {
         setSaveMessage({ type: 'success', text: 'Firebase connected successfully!' });
       } else {
@@ -208,9 +208,9 @@ export default function SettingsModal({ onClose }) {
                 {isFirebaseEnabled && (
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       setJsonConfig('');
-                      applyFirebaseConfig(null);
+                      await applyFirebaseConfig(null);
                       setSaveMessage({ type: 'info', text: 'Switched to Local Offline Storage.' });
                     }}
                     className="px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold text-xs transition-colors"
