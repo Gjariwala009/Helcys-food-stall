@@ -30,19 +30,19 @@ export default function Navbar({ activeTab, setActiveTab, onOpenSettings }) {
         <div className="flex items-center justify-between h-16">
           {/* Logo & Brand */}
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('new-order')}>
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-amber-500 flex items-center justify-center shadow-md shadow-rose-200 text-white font-bold text-xl">
-              🧋
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 via-amber-500 to-emerald-500 flex items-center justify-center shadow-md shadow-rose-200 text-white font-bold text-xl">
+              🥟
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-slate-900 text-lg tracking-tight">
-                  Helcy's Stall
+                <span className="font-black text-slate-900 text-lg tracking-tight">
+                  MoBa Stall
                 </span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700">
-                  College Fest
+                <span className="text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                  Momo + Boba
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-medium">Boba & Momos Order Tracker</p>
+              <p className="text-xs text-slate-500 font-medium">College Fest Order Tracker</p>
             </div>
           </div>
 

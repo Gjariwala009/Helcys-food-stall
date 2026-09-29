@@ -19,10 +19,10 @@ export default function ReceiptModal({ order, onClose }) {
         {/* Header Bar */}
         <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🧋</span>
+            <span className="text-xl">🥟</span>
             <div>
               <h3 className="font-extrabold text-sm leading-tight">Order Receipt</h3>
-              <p className="text-[10px] text-slate-400">Helcy's Boba & Momos</p>
+              <p className="text-[10px] text-slate-400">MoBa Stall (Momo + Boba)</p>
             </div>
           </div>
           <button
@@ -96,7 +96,7 @@ export default function ReceiptModal({ order, onClose }) {
           </div>
 
           <div className="text-center text-[10px] text-slate-400 pt-1 font-sans">
-            Thank you for visiting Helcy's Stall! ❤️
+            Thank you for visiting MoBa Stall! ❤️
           </div>
         </div>
 

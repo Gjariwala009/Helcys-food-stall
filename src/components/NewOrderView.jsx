@@ -133,7 +133,7 @@ export default function NewOrderView({ onOrderPlacedSuccess }) {
     const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
     const itemsList = order.items.map((i) => `${i.quantity}x ${i.name}`).join(', ');
     const msg = encodeURIComponent(
-      `Hi ${order.customerName}! 🧋🥟 Your order #${order.tokenNumber} (${itemsList}) is READY for pickup at Helcy's stall!`
+      `Hi ${order.customerName}! 🥟🧋 Your order #${order.tokenNumber} (${itemsList}) is READY for pickup at MoBa Stall!`
     );
     return `https://wa.me/${phoneWithCountry}?text=${msg}`;
   };

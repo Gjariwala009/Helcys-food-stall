@@ -60,7 +60,7 @@ function AppContent() {
       {/* Footer */}
       <footer className="border-t border-slate-200/60 bg-white/60 py-4 text-center text-xs text-slate-400">
         <p>
-          Helcy's Boba & Momos Stall • College Event Order Management System • Made with 🧋 & 🥟
+          MoBa Stall (Momo + Boba) • College Event Order Management System • Made with 🥟 & 🧋
         </p>
       </footer>
     </div>

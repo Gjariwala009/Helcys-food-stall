@@ -14,18 +14,23 @@ import {
   Clock,
   ChevronDown,
   ShoppingBag,
-  Info
+  Info,
+  Trash2,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { useOrders } from '../context/OrdersContext';
 import { MENU_ITEMS, ORDER_STATUS } from '../constants/menu';
 import { exportOrdersToCSV } from '../services/storage';
 
 export default function PastOrdersView({ onOpenReceipt }) {
-  const { orders, updateStatus } = useOrders();
+  const { orders, updateStatus, removeOrder } = useOrders();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPayment, setSelectedPayment] = useState('all'); // 'all' | 'Cash' | 'Online'
   const [selectedStatus, setSelectedStatus] = useState('all'); // 'all' | 'completed' | 'preparing' | 'ready'
+  const [orderToDelete, setOrderToDelete] = useState(null);
+  const [confirmTokenInput, setConfirmTokenInput] = useState('');
 
   // Analytics Computations
   const analytics = useMemo(() => {
@@ -232,7 +237,7 @@ export default function PastOrdersView({ onOpenReceipt }) {
             Menu Items Sales Breakdown
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Quantity sold and earnings for each of Helcy's stall items
+            Quantity sold and earnings for each of MoBa Stall's items
           </p>
         </div>
 
@@ -453,6 +458,18 @@ export default function PastOrdersView({ onOpenReceipt }) {
                               <RotateCcw className="w-3.5 h-3.5" />
                             </button>
                           )}
+
+                          {/* Protected Delete Order */}
+                          <button
+                            onClick={() => {
+                              setOrderToDelete(order);
+                              setConfirmTokenInput('');
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                            title="Delete Order (Protected)"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -463,6 +480,116 @@ export default function PastOrdersView({ onOpenReceipt }) {
           </div>
         )}
       </div>
+
+      {/* Mistake-Proof Protected Delete Confirmation Modal */}
+      {orderToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-4 bg-rose-600 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+                  <Trash2 className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm">Delete Order #{orderToDelete.tokenNumber}?</h3>
+                  <p className="text-[11px] text-rose-100">Permanent Record Deletion</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setOrderToDelete(null);
+                  setConfirmTokenInput('');
+                }}
+                className="p-1.5 rounded-lg text-rose-100 hover:text-white hover:bg-rose-700 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4 text-xs text-slate-700">
+              <div className="p-3.5 rounded-2xl bg-rose-50/70 border border-rose-200 text-rose-900 space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-xs text-rose-800">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>Warning: This cannot be undone</span>
+                </div>
+                <p className="text-[11px] text-rose-700 leading-relaxed">
+                  This order will be permanently erased from sales history and the live database.
+                </p>
+              </div>
+
+              {/* Order Details Preview */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-500">Order:</span>
+                  <span className="font-black text-slate-900 text-sm">#{orderToDelete.tokenNumber}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-500">Customer:</span>
+                  <span className="font-extrabold text-slate-900">{orderToDelete.customerName || 'Walk-in'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-500">Total:</span>
+                  <span className="font-black text-slate-900">₹{orderToDelete.totalAmount} ({orderToDelete.paymentMethod})</span>
+                </div>
+                <div className="pt-1 border-t border-slate-200/70 text-[11px] text-slate-600">
+                  <span className="font-bold">Items: </span>
+                  <span>{orderToDelete.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}</span>
+                </div>
+              </div>
+
+              {/* Fail-Safe Input Requirement */}
+              <div className="space-y-2">
+                <label className="block text-[11px] font-bold text-slate-700">
+                  To prevent accidental deletion, type the token number <strong className="text-rose-600 font-black">"{orderToDelete.tokenNumber}"</strong> below:
+                </label>
+                <input
+                  type="text"
+                  placeholder={`Type ${orderToDelete.tokenNumber}`}
+                  value={confirmTokenInput}
+                  onChange={(e) => setConfirmTokenInput(e.target.value)}
+                  autoFocus
+                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-white font-mono text-center font-bold text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400"
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setOrderToDelete(null);
+                  setConfirmTokenInput('');
+                }}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-colors"
+              >
+                Cancel (Keep Order)
+              </button>
+              <button
+                type="button"
+                disabled={confirmTokenInput.trim() !== String(orderToDelete.tokenNumber)}
+                onClick={() => {
+                  if (confirmTokenInput.trim() === String(orderToDelete.tokenNumber)) {
+                    removeOrder(orderToDelete.id);
+                    setOrderToDelete(null);
+                    setConfirmTokenInput('');
+                  }
+                }}
+                className={`px-4 py-2 rounded-xl text-white font-black text-xs flex items-center gap-1.5 transition-all shadow-sm ${
+                  confirmTokenInput.trim() === String(orderToDelete.tokenNumber)
+                    ? 'bg-rose-600 hover:bg-rose-700 active:scale-95 shadow-rose-200 cursor-pointer'
+                    : 'bg-rose-300 opacity-60 cursor-not-allowed'
+                }`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Permanently Delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
