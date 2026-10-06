@@ -82,11 +82,11 @@ export default function PastOrdersView({ onOpenReceipt }) {
 
     // Calculate total boba vs momos
     const totalBobaUnits = itemBreakdown
-      .filter((i) => i.category === 'boba')
+      .filter((i) => i.category === 'boba' || i.category === 'combo' || i.id.includes('boba'))
       .reduce((sum, i) => sum + i.unitsSold, 0);
 
     const totalMomoUnits = itemBreakdown
-      .filter((i) => i.category === 'momos')
+      .filter((i) => i.category === 'momos' || i.category === 'combo' || i.id.includes('momo'))
       .reduce((sum, i) => sum + i.unitsSold, 0);
 
     return {
@@ -241,7 +241,7 @@ export default function PastOrdersView({ onOpenReceipt }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
           {analytics.itemBreakdown.map((item) => {
             const revenuePercent =
               analytics.totalRevenue > 0

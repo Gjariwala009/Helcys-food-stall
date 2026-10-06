@@ -36,13 +36,9 @@ export default function NewOrderView({ onOrderPlacedSuccess }) {
   const { orders, createOrder, updateStatus } = useOrders();
 
   // State for quantities of each item
-  const [quantities, setQuantities] = useState({
-    'green-apple-boba': 0,
-    'orange-boba': 0,
-    'strawberry-boba': 0,
-    'blueberry-boba': 0,
-    'steamed-momos': 0,
-  });
+  const [quantities, setQuantities] = useState(() =>
+    MENU_ITEMS.reduce((acc, item) => ({ ...acc, [item.id]: 0 }), {})
+  );
 
   const [customerName, setCustomerName] = useState('');
   const [contact, setContact] = useState('');
@@ -69,13 +65,9 @@ export default function NewOrderView({ onOrderPlacedSuccess }) {
 
   // Reset entire form
   const handleReset = () => {
-    setQuantities({
-      'green-apple-boba': 0,
-      'orange-boba': 0,
-      'strawberry-boba': 0,
-      'blueberry-boba': 0,
-      'steamed-momos': 0,
-    });
+    setQuantities(
+      MENU_ITEMS.reduce((acc, item) => ({ ...acc, [item.id]: 0 }), {})
+    );
     setCustomerName('');
     setContact('');
     setRemarks('');

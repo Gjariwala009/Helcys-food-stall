@@ -69,6 +69,20 @@ export const MENU_ITEMS = [
     tagBg: 'bg-amber-100 text-amber-900',
     description: 'Freshly steamed juicy vegetable & spiced momos with spicy red dip',
   },
+  {
+    id: 'boba-momo-combo',
+    name: 'Boba + Momo Combo',
+    category: 'combo',
+    price: 250,
+    badge: 'Special Combo',
+    emoji: '🍱',
+    color: 'from-purple-500 to-rose-500',
+    border: 'border-purple-300',
+    lightBg: 'bg-purple-50',
+    textAccent: 'text-purple-700',
+    tagBg: 'bg-purple-100 text-purple-800',
+    description: '1 Boba drink of choice + 1 plate steamed momos at a special combo price',
+  },
 ];
 
 export const PAYMENT_METHODS = {
